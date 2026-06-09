@@ -213,6 +213,32 @@ impl<D: Dialect> Binary<D> for SaturatingSub {
     }
 }
 
+pub struct RotateLeft;
+
+impl<D: Dialect> Binary<D> for RotateLeft {
+    fn format_scalar<Lhs: Display, Rhs: Display>(
+        f: &mut std::fmt::Formatter<'_>,
+        lhs: Lhs,
+        rhs: Rhs,
+        out: Item<D>,
+    ) -> std::fmt::Result {
+        D::compile_rotate_left(f, lhs, rhs, out)
+    }
+}
+
+pub struct RotateRight;
+
+impl<D: Dialect> Binary<D> for RotateRight {
+    fn format_scalar<Lhs: Display, Rhs: Display>(
+        f: &mut std::fmt::Formatter<'_>,
+        lhs: Lhs,
+        rhs: Rhs,
+        out: Item<D>,
+    ) -> std::fmt::Result {
+        D::compile_rotate_right(f, lhs, rhs, out)
+    }
+}
+
 pub struct Powf;
 
 impl<D: Dialect> Binary<D> for Powf {

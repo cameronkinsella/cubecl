@@ -102,6 +102,28 @@ impl<'a> Visitor<'a> {
                 };
                 self.append_operation_with_result(operation)
             }
+            // No funnel-shift intrinsic is exposed, so synthesize a circular rotate
+            // from shifts. The amount is masked to the bit width (zero rotation is
+            // well-defined) and the right shift is logical (rotate works on the raw
+            // bit pattern regardless of signedness).
+            Bitwise::RotateLeft(bin_op) | Bitwise::RotateRight(bin_op) => {
+                let left = matches!(bitwise, Bitwise::RotateLeft(_));
+                let (lhs, rhs) = self.get_binary_op_variable(bin_op.lhs, bin_op.rhs);
+                let bits = bin_op.lhs.storage_type().size_bits() as i64;
+                let mask = self.create_int_constant_from_item(out.ty, bits - 1);
+                let width = self.create_int_constant_from_item(out.ty, bits);
+                let amt = self.append_operation_with_result(arith::andi(rhs, mask, self.location));
+                let inv_sub =
+                    self.append_operation_with_result(arith::subi(width, amt, self.location));
+                let inv =
+                    self.append_operation_with_result(arith::andi(inv_sub, mask, self.location));
+                let (fwd_amt, back_amt) = if left { (amt, inv) } else { (inv, amt) };
+                let upper =
+                    self.append_operation_with_result(arith::shli(lhs, fwd_amt, self.location));
+                let lower =
+                    self.append_operation_with_result(arith::shrui(lhs, back_amt, self.location));
+                self.append_operation_with_result(arith::ori(upper, lower, self.location))
+            }
             Bitwise::CountOnes(unary_op) => {
                 let value = self.get_variable(unary_op.input);
                 let result_type = unary_op.input.ty.to_type(self.context);

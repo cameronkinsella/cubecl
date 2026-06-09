@@ -405,6 +405,8 @@ impl<Marker: 'static> TrailingZeros for DynamicScalar<Marker> {}
 impl<Marker: 'static> FindFirstSet for DynamicScalar<Marker> {}
 impl<Marker: 'static> SaturatingAdd for DynamicScalar<Marker> {}
 impl<Marker: 'static> SaturatingSub for DynamicScalar<Marker> {}
+impl<Marker: 'static> RotateLeft for DynamicScalar<Marker> {}
+impl<Marker: 'static> RotateRight for DynamicScalar<Marker> {}
 impl<Marker: 'static> core::hash::Hash for DynamicScalar<Marker> {
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         self.val.hash(state);

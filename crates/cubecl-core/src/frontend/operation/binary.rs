@@ -643,6 +643,36 @@ impl_binary_func!(
     usize,
     isize
 );
+impl_binary_func!(
+    RotateLeft,
+    rotate_left,
+    Bitwise::RotateLeft,
+    i8,
+    i16,
+    i32,
+    i64,
+    u8,
+    u16,
+    u32,
+    u64,
+    usize,
+    isize
+);
+impl_binary_func!(
+    RotateRight,
+    rotate_right,
+    Bitwise::RotateRight,
+    i8,
+    i16,
+    i32,
+    i64,
+    u8,
+    u16,
+    u32,
+    u64,
+    usize,
+    isize
+);
 impl_binary_func_scalar_out!(
     Dot,
     dot,

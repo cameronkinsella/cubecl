@@ -180,7 +180,11 @@ impl Optimizer {
             | Bitwise::BitwiseOr(binary_operator)
             | Bitwise::BitwiseXor(binary_operator)
             | Bitwise::ShiftLeft(binary_operator)
-            | Bitwise::ShiftRight(binary_operator) => self.visit_binop(binary_operator, visit_read),
+            | Bitwise::ShiftRight(binary_operator)
+            | Bitwise::RotateLeft(binary_operator)
+            | Bitwise::RotateRight(binary_operator) => {
+                self.visit_binop(binary_operator, visit_read)
+            }
 
             Bitwise::CountOnes(unary_operator)
             | Bitwise::BitwiseNot(unary_operator)

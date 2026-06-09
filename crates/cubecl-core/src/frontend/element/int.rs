@@ -17,6 +17,8 @@ pub trait Int:
     + FindFirstSet
     + SaturatingAdd
     + SaturatingSub
+    + RotateLeft
+    + RotateRight
     + core::ops::BitOr<Output = Self>
     + core::ops::BitAnd<Output = Self>
     + core::ops::BitXor<Output = Self>

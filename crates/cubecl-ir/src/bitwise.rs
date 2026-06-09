@@ -17,6 +17,12 @@ pub enum Bitwise {
     BitwiseXor(BinaryOperator),
     ShiftLeft(BinaryOperator),
     ShiftRight(BinaryOperator),
+    /// Rotate bits left (circular shift). `rhs` is the rotation amount, taken
+    /// modulo the bit width of `lhs`.
+    RotateLeft(BinaryOperator),
+    /// Rotate bits right (circular shift). `rhs` is the rotation amount, taken
+    /// modulo the bit width of `lhs`.
+    RotateRight(BinaryOperator),
     CountOnes(UnaryOperator),
     ReverseBits(UnaryOperator),
     BitwiseNot(UnaryOperator),
@@ -38,6 +44,8 @@ impl Display for Bitwise {
             Bitwise::ReverseBits(op) => write!(f, "{}.reverse_bits()", op.input),
             Bitwise::ShiftLeft(op) => write!(f, "{} << {}", op.lhs, op.rhs),
             Bitwise::ShiftRight(op) => write!(f, "{} >> {}", op.lhs, op.rhs),
+            Bitwise::RotateLeft(op) => write!(f, "{}.rotate_left({})", op.lhs, op.rhs),
+            Bitwise::RotateRight(op) => write!(f, "{}.rotate_right({})", op.lhs, op.rhs),
             Bitwise::BitwiseNot(op) => write!(f, "!{}", op.input),
             Bitwise::LeadingZeros(op) => write!(f, "{}.leading_zeros()", op.input),
             Bitwise::TrailingZeros(op) => write!(f, "{}.trailing_zeros()", op.input),

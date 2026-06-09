@@ -53,6 +53,59 @@ impl<T: SpirvTarget> SpirvCompiler<T> {
                 })
             }
 
+            // SPIR-V has no rotate instruction, so synthesize one from shifts. The
+            // amount is masked to the bit width (so a zero rotation is well-defined)
+            // and the shifts are logical (operating on the raw bit pattern, which is
+            // what rotate means regardless of signedness).
+            Bitwise::RotateLeft(op) => {
+                let width = op.lhs.ty.storage_type().size() as u32 * 8;
+                self.compile_binary_op(op, out, uniform, |b, item, ty, lhs, rhs, out| {
+                    let mask = item.const_u32(b, width - 1);
+                    let width_c = item.const_u32(b, width);
+                    let amt = b.id();
+                    b.bitwise_and(ty, Some(amt), rhs, mask).unwrap();
+                    b.mark_uniformity(amt, uniform);
+                    let left = b.id();
+                    b.shift_left_logical(ty, Some(left), lhs, amt).unwrap();
+                    b.mark_uniformity(left, uniform);
+                    let inv = b.id();
+                    b.i_sub(ty, Some(inv), width_c, amt).unwrap();
+                    b.mark_uniformity(inv, uniform);
+                    let inv_masked = b.id();
+                    b.bitwise_and(ty, Some(inv_masked), inv, mask).unwrap();
+                    b.mark_uniformity(inv_masked, uniform);
+                    let right = b.id();
+                    b.shift_right_logical(ty, Some(right), lhs, inv_masked)
+                        .unwrap();
+                    b.mark_uniformity(right, uniform);
+                    b.bitwise_or(ty, Some(out), left, right).unwrap();
+                })
+            }
+            Bitwise::RotateRight(op) => {
+                let width = op.lhs.ty.storage_type().size() as u32 * 8;
+                self.compile_binary_op(op, out, uniform, |b, item, ty, lhs, rhs, out| {
+                    let mask = item.const_u32(b, width - 1);
+                    let width_c = item.const_u32(b, width);
+                    let amt = b.id();
+                    b.bitwise_and(ty, Some(amt), rhs, mask).unwrap();
+                    b.mark_uniformity(amt, uniform);
+                    let right = b.id();
+                    b.shift_right_logical(ty, Some(right), lhs, amt).unwrap();
+                    b.mark_uniformity(right, uniform);
+                    let inv = b.id();
+                    b.i_sub(ty, Some(inv), width_c, amt).unwrap();
+                    b.mark_uniformity(inv, uniform);
+                    let inv_masked = b.id();
+                    b.bitwise_and(ty, Some(inv_masked), inv, mask).unwrap();
+                    b.mark_uniformity(inv_masked, uniform);
+                    let left = b.id();
+                    b.shift_left_logical(ty, Some(left), lhs, inv_masked)
+                        .unwrap();
+                    b.mark_uniformity(left, uniform);
+                    b.bitwise_or(ty, Some(out), left, right).unwrap();
+                })
+            }
+
             Bitwise::CountOnes(op) => {
                 self.compile_unary_op(op, out, uniform, |b, _, ty, input, out| {
                     b.bit_count(ty, Some(out), input).unwrap();

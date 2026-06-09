@@ -139,6 +139,19 @@ impl<D: Dialect> Elem<D> {
         }
     }
 
+    /// The unsigned integer type of the same bit width, used to make bit shifts
+    /// logical (non-sign-extending) — e.g. for rotates. Non-signed-integer types
+    /// are returned unchanged.
+    pub const fn as_unsigned(&self) -> Self {
+        match self {
+            Elem::I8 => Elem::U8,
+            Elem::I16 => Elem::U16,
+            Elem::I32 => Elem::U32,
+            Elem::I64 => Elem::U64,
+            other => *other,
+        }
+    }
+
     pub const fn unpacked(&self) -> Self {
         match self {
             Elem::FP4x2(ty) => Elem::FP4(*ty),
