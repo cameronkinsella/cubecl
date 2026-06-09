@@ -17,7 +17,7 @@ use crate::{
         self, Component, DialectBindings, DialectCubeBuiltins, DialectIncludes,
         DialectInstructions, DialectProcessors, DialectTypes, DialectWarpReduceCompiler,
         DialectWmmaCompiler, Elem, FP4Kind, FP6Kind, FP8Kind, Flags, Instruction, Item, KernelArg,
-        ManualMma, PointerClass, Variable, WarpInstruction, unary,
+        ManualMma, PointerClass, Variable, WarpInstruction, compile_rotate_via_shifts, unary,
     },
 };
 
@@ -563,6 +563,49 @@ impl<M: DialectWmmaCompiler<Self>> DialectInstructions<Self> for CudaDialect<M> 
                 )
             }
             _ => unreachable!("Should be replaced by polyfill"),
+        }
+    }
+
+    fn compile_rotate_left(
+        f: &mut std::fmt::Formatter<'_>,
+        lhs: impl Display,
+        rhs: impl Display,
+        item: Item<Self>,
+    ) -> std::fmt::Result {
+        // `__funnelshift_l(x, x, n)` is a true 32-bit rotate (one SHF instruction);
+        // the amount is taken mod 32, matching rotate semantics. Other widths fall
+        // back to the portable shift synthesis.
+        match *item.elem() {
+            Elem::U32 => write!(f, "__funnelshift_l({lhs}, {lhs}, {rhs})"),
+            Elem::I32 => {
+                let u32 = Elem::<Self>::U32;
+                write!(
+                    f,
+                    "{}(__funnelshift_l({u32}({lhs}), {u32}({lhs}), {rhs}))",
+                    Elem::<Self>::I32
+                )
+            }
+            _ => compile_rotate_via_shifts(f, lhs, rhs, item, true),
+        }
+    }
+
+    fn compile_rotate_right(
+        f: &mut std::fmt::Formatter<'_>,
+        lhs: impl Display,
+        rhs: impl Display,
+        item: Item<Self>,
+    ) -> std::fmt::Result {
+        match *item.elem() {
+            Elem::U32 => write!(f, "__funnelshift_r({lhs}, {lhs}, {rhs})"),
+            Elem::I32 => {
+                let u32 = Elem::<Self>::U32;
+                write!(
+                    f,
+                    "{}(__funnelshift_r({u32}({lhs}), {u32}({lhs}), {rhs}))",
+                    Elem::<Self>::I32
+                )
+            }
+            _ => compile_rotate_via_shifts(f, lhs, rhs, item, false),
         }
     }
 

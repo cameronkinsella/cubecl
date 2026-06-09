@@ -1062,6 +1062,16 @@ impl WgslCompiler {
                 rhs: self.compile_variable(op.rhs),
                 out: self.compile_variable(out),
             }),
+            cube::Bitwise::RotateLeft(op) => instructions.push(wgsl::Instruction::RotateLeft {
+                lhs: self.compile_variable(op.lhs),
+                rhs: self.compile_variable(op.rhs),
+                out: self.compile_variable(out),
+            }),
+            cube::Bitwise::RotateRight(op) => instructions.push(wgsl::Instruction::RotateRight {
+                lhs: self.compile_variable(op.lhs),
+                rhs: self.compile_variable(op.rhs),
+                out: self.compile_variable(out),
+            }),
             cube::Bitwise::BitwiseNot(op) => instructions.push(wgsl::Instruction::BitwiseNot {
                 input: self.compile_variable(op.input),
                 out: self.compile_variable(out),

@@ -267,6 +267,8 @@ impl<P: Scalar + ReverseBits, N: Size> ReverseBits for Vector<P, N> {}
 impl<P: Scalar + CubeNot, N: Size> CubeNot for Vector<P, N> {}
 impl<P: Scalar + SaturatingAdd, N: Size> SaturatingAdd for Vector<P, N> {}
 impl<P: Scalar + SaturatingSub, N: Size> SaturatingSub for Vector<P, N> {}
+impl<P: Scalar + RotateLeft, N: Size> RotateLeft for Vector<P, N> {}
+impl<P: Scalar + RotateRight, N: Size> RotateRight for Vector<P, N> {}
 impl<P: Scalar + IsNan, N: Size> IsNan for Vector<P, N> {}
 impl<P: Scalar + IsInf, N: Size> IsInf for Vector<P, N> {}
 impl<P: Scalar + Normalize, N: Size> Normalize for Vector<P, N> {}

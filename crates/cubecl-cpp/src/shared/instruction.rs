@@ -152,6 +152,8 @@ pub enum Instruction<D: Dialect> {
     ReverseBits(UnaryInstruction<D>),
     ShiftLeft(BinaryInstruction<D>),
     ShiftRight(BinaryInstruction<D>),
+    RotateLeft(BinaryInstruction<D>),
+    RotateRight(BinaryInstruction<D>),
     BitwiseNot(UnaryInstruction<D>),
     LeadingZeros(UnaryInstruction<D>),
     TrailingZeros(UnaryInstruction<D>),
@@ -340,6 +342,8 @@ impl<D: Dialect> Display for Instruction<D> {
             Instruction::FindFirstSet(it) => FindFirstSet::format(f, &it.input, &it.out),
             Instruction::ShiftLeft(it) => ShiftLeft::format(f, &it.lhs, &it.rhs, &it.out),
             Instruction::ShiftRight(it) => ShiftRight::format(f, &it.lhs, &it.rhs, &it.out),
+            Instruction::RotateLeft(it) => RotateLeft::format(f, &it.lhs, &it.rhs, &it.out),
+            Instruction::RotateRight(it) => RotateRight::format(f, &it.lhs, &it.rhs, &it.out),
             Instruction::Index(it) => {
                 Index::format(f, &it.list, &it.index, &it.out, it.vector_size)
             }

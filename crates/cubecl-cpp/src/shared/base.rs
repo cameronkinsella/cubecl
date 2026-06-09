@@ -1493,6 +1493,12 @@ impl<D: Dialect> CppCompiler<D> {
             gpu::Bitwise::ShiftRight(op) => {
                 instructions.push(Instruction::ShiftRight(self.compile_binary(op, out)))
             }
+            gpu::Bitwise::RotateLeft(op) => {
+                instructions.push(Instruction::RotateLeft(self.compile_binary(op, out)))
+            }
+            gpu::Bitwise::RotateRight(op) => {
+                instructions.push(Instruction::RotateRight(self.compile_binary(op, out)))
+            }
             gpu::Bitwise::BitwiseNot(op) => {
                 instructions.push(Instruction::BitwiseNot(self.compile_unary(op, out)))
             }

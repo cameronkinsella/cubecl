@@ -305,6 +305,16 @@ pub enum Instruction {
         rhs: Variable,
         out: Variable,
     },
+    RotateLeft {
+        lhs: Variable,
+        rhs: Variable,
+        out: Variable,
+    },
+    RotateRight {
+        lhs: Variable,
+        rhs: Variable,
+        out: Variable,
+    },
     BitwiseNot {
         input: Variable,
         out: Variable,
@@ -922,6 +932,8 @@ for (var {i}: {i_ty} = {start}; {i} {cmp} {end}; {increment}) {{
                 let out = out.fmt_left();
                 writeln!(f, "{out} = {lhs} >> {rhs};")
             }
+            Instruction::RotateLeft { lhs, rhs, out } => format_rotate(f, lhs, rhs, out, true),
+            Instruction::RotateRight { lhs, rhs, out } => format_rotate(f, lhs, rhs, out, false),
             Instruction::BitwiseNot { input, out } => {
                 let out = out.fmt_left();
                 writeln!(f, "{out} = ~{input};")
@@ -1140,4 +1152,43 @@ fn comparison(
     let rhs = rhs.fmt_cast_to(item);
     let out = out.fmt_left();
     writeln!(f, "{out} = {lhs} {op} {rhs};")
+}
+
+/// WGSL has no rotate builtin, so synthesize a circular rotate from shifts. The
+/// shifts are done on the unsigned type of the same width (so they are logical,
+/// matching rotate's bit-pattern semantics even for signed inputs) and the amount
+/// is masked to the bit width so a zero rotation stays well-defined. Works for
+/// both scalar and vector items (the mask/width constants splat to match).
+fn format_rotate(
+    f: &mut std::fmt::Formatter<'_>,
+    lhs: &Variable,
+    rhs: &Variable,
+    out: &Variable,
+    left: bool,
+) -> std::fmt::Result {
+    let out_item = out.item();
+    let elem = *out_item.elem();
+    let u_elem = match elem {
+        Elem::I32 => Elem::U32,
+        Elem::I64 => Elem::U64,
+        other => other,
+    };
+    let bits = elem.size() * 8;
+    let mask = bits - 1;
+
+    let u_item = out_item.with_elem(u_elem);
+    let u32_item = out_item.with_elem(Elem::U32);
+    let lhs_u = lhs.fmt_cast_to(u_item);
+    let amt = rhs.fmt_cast_to(u32_item);
+    let mask_c = format!("{u32_item}({mask}u)");
+    let bits_c = format!("{u32_item}({bits}u)");
+
+    let s = format!("({amt} & {mask_c})");
+    let inv = format!("(({bits_c} - {s}) & {mask_c})");
+    let (sh1, sh2) = if left { ("<<", ">>") } else { (">>", "<<") };
+    let res_u = format!("(({lhs_u} {sh1} {s}) | ({lhs_u} {sh2} {inv}))");
+    let res = u_item.fmt_cast_to(out_item, res_u);
+
+    let out = out.fmt_left();
+    writeln!(f, "{out} = {res};")
 }

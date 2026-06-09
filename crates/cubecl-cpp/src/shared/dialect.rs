@@ -15,6 +15,29 @@ use super::{
     WmmaInstruction,
 };
 
+/// Synthesize a portable circular rotate from shifts. The shifts are done on the
+/// unsigned type so they are logical (not sign-extending) and the amount is masked
+/// to the bit width so a zero rotation stays well-defined. `left` selects the
+/// direction. Shared by the default `compile_rotate_left` / `compile_rotate_right`
+/// and by dialects that only special-case some widths.
+pub(crate) fn compile_rotate_via_shifts<D: Dialect>(
+    f: &mut std::fmt::Formatter<'_>,
+    lhs: impl Display,
+    rhs: impl Display,
+    item: Item<D>,
+    left: bool,
+) -> std::fmt::Result {
+    let elem = *item.elem();
+    let unsigned = elem.as_unsigned();
+    let bits = elem.size_bits();
+    let mask = bits - 1;
+    let (a, b) = if left { ("<<", ">>") } else { (">>", "<<") };
+    write!(
+        f,
+        "{elem}(({unsigned}({lhs}) {a} ({rhs} & {mask})) | ({unsigned}({lhs}) {b} (({bits} - ({rhs} & {mask})) & {mask})))"
+    )
+}
+
 // Base dialect
 
 pub trait Dialect:
@@ -633,6 +656,30 @@ pub trait DialectInstructions<D: Dialect> {
         rhs: impl Display,
         item: Item<D>,
     ) -> std::fmt::Result;
+
+    /// Rotate `lhs` left by `rhs` bits (circular shift), the amount taken modulo
+    /// the bit width. The default synthesizes a portable, well-defined rotate from
+    /// shifts (shifts are done on the unsigned type so they are logical, and the
+    /// amount is masked so a zero rotation is not undefined); dialects with a
+    /// native rotate/funnel-shift can override this.
+    fn compile_rotate_left(
+        f: &mut std::fmt::Formatter<'_>,
+        lhs: impl Display,
+        rhs: impl Display,
+        item: Item<D>,
+    ) -> std::fmt::Result {
+        compile_rotate_via_shifts(f, lhs, rhs, item, true)
+    }
+
+    /// Rotate `lhs` right by `rhs` bits (circular shift). See [`Dialect::compile_rotate_left`].
+    fn compile_rotate_right(
+        f: &mut std::fmt::Formatter<'_>,
+        lhs: impl Display,
+        rhs: impl Display,
+        item: Item<D>,
+    ) -> std::fmt::Result {
+        compile_rotate_via_shifts(f, lhs, rhs, item, false)
+    }
 
     // debug
     fn compile_instruction_printf(

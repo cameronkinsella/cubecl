@@ -397,6 +397,109 @@ test_mulhi_impl!(
     ]
 );
 
+#[cube(launch_unchecked)]
+fn test_rotate_left_kernel<N: Size>(
+    lhs: &[Vector<u32, N>],
+    rhs: &[Vector<u32, N>],
+    output: &mut [Vector<u32, N>],
+) {
+    if ABSOLUTE_POS < rhs.len() {
+        output[ABSOLUTE_POS] = lhs[ABSOLUTE_POS].rotate_left(rhs[ABSOLUTE_POS]);
+    }
+}
+
+#[cube(launch_unchecked)]
+fn test_rotate_right_kernel<N: Size>(
+    lhs: &[Vector<u32, N>],
+    rhs: &[Vector<u32, N>],
+    output: &mut [Vector<u32, N>],
+) {
+    if ABSOLUTE_POS < rhs.len() {
+        output[ABSOLUTE_POS] = lhs[ABSOLUTE_POS].rotate_right(rhs[ABSOLUTE_POS]);
+    }
+}
+
+macro_rules! test_rotate_impl {
+    (
+        $test_name:ident,
+        $kernel:ident,
+        [$({
+            input_vectorization: $input_vectorization:expr,
+            lhs: $lhs:expr,
+            rhs: $rhs:expr,
+            expected: $expected:expr
+        }),*]) => {
+        pub fn $test_name<R: Runtime>(client: ComputeClient<R>) {
+            $(
+            {
+                let lhs = $lhs;
+                let rhs = $rhs;
+                let output_handle = client.empty($expected.len() * core::mem::size_of::<u32>());
+                let lhs_handle = client.create_from_slice(u32::as_bytes(lhs));
+                let rhs_handle = client.create_from_slice(u32::as_bytes(rhs));
+
+                unsafe {
+                    $kernel::launch_unchecked(
+                        &client,
+                        CubeCount::Static(1, 1, 1),
+                        CubeDim::new_1d((lhs.len() / $input_vectorization as usize) as u32),
+                        $input_vectorization,
+                        BufferArg::from_raw_parts(lhs_handle, lhs.len()),
+                        BufferArg::from_raw_parts(rhs_handle, rhs.len()),
+                        BufferArg::from_raw_parts(output_handle.clone(), $expected.len()),
+                    )
+                };
+
+                let actual = client.read_one_unchecked(output_handle);
+                let actual = u32::from_bytes(&actual);
+                let expected: &[u32] = $expected;
+
+                assert_eq!(actual, expected);
+            }
+            )*
+        }
+    };
+}
+
+test_rotate_impl!(
+    test_rotate_left,
+    test_rotate_left_kernel,
+    [
+        {
+            // Includes amount 0 (identity) and 32 (== 0 mod width).
+            input_vectorization: 1,
+            lhs: &[0x12345678, 0x80000000, 0xDEADBEEF, 0x12345678, 0x12345678],
+            rhs: &[8, 1, 4, 0, 32],
+            expected: &[0x34567812, 0x00000001, 0xEADBEEFDu32, 0x12345678, 0x12345678]
+        },
+        {
+            input_vectorization: 4,
+            lhs: &[0x12345678, 0x80000000, 0xDEADBEEF, 0x00000001],
+            rhs: &[8, 1, 4, 31],
+            expected: &[0x34567812, 0x00000001, 0xEADBEEFDu32, 0x80000000u32]
+        }
+    ]
+);
+
+test_rotate_impl!(
+    test_rotate_right,
+    test_rotate_right_kernel,
+    [
+        {
+            input_vectorization: 1,
+            lhs: &[0x12345678, 0x00000001, 0xDEADBEEF, 0x12345678, 0x12345678],
+            rhs: &[8, 1, 4, 0, 32],
+            expected: &[0x78123456, 0x80000000u32, 0xFDEADBEEu32, 0x12345678, 0x12345678]
+        },
+        {
+            input_vectorization: 4,
+            lhs: &[0x12345678, 0x00000001, 0xDEADBEEF, 0x80000000],
+            rhs: &[8, 1, 4, 31],
+            expected: &[0x78123456, 0x80000000u32, 0xFDEADBEEu32, 0x00000001]
+        }
+    ]
+);
+
 #[allow(missing_docs)]
 #[macro_export]
 macro_rules! testgen_binary {
@@ -451,6 +554,8 @@ macro_rules! testgen_binary_untyped {
             }
 
             add_test!(test_mulhi);
+            add_test!(test_rotate_left);
+            add_test!(test_rotate_right);
         }
     };
 }
